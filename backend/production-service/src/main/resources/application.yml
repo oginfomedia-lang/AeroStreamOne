@@ -61,7 +61,7 @@ app:
 
 services:
   production-resource:
-    base-url: http://localhost:8090/api/v1
+    base-url: http://${PRODUCTION_RESOURCE_HOST:localhost}:8090/api/v1
 
 eureka:
   client:

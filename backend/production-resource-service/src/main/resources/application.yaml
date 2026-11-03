@@ -56,7 +56,7 @@ production:
 
 services:
   qa:
-    base-url: http://localhost:8082/api/v1
+    base-url: http://${QA_HOST:localhost}:8082/api/v1
 
 eureka:
   client:

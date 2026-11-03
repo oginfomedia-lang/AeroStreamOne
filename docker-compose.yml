@@ -1,0 +1,198 @@
+# Whole Aerospace ERP in Docker:   docker compose up --build
+# Needs only Docker + a .env file (copy .env.example). Then open http://localhost:3000
+name: aerospace-erp
+
+x-service: &service
+  restart: unless-stopped
+  depends_on:
+    postgres: {condition: service_healthy}
+    kafka: {condition: service_healthy}
+    service-registry: {condition: service_started}
+  environment: &service-env
+    JWT_SECRET: ${JWT_SECRET}
+    DB_PASSWORD: ${DB_PASSWORD}
+    MAIL_USERNAME: ${MAIL_USERNAME:-}
+    MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+    ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
+    SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+    AUTH_HOST: auth-service
+    INVENTORY_HOST: inventory-service
+    QA_HOST: qa-service
+    NOTIFICATION_HOST: notification-service
+    ORDER_HOST: order-service
+    PRODUCTION_HOST: production-service
+    PROCUREMENT_HOST: procurement-service
+    REPORTING_HOST: reporting-service
+    PRODUCTION_RESOURCE_HOST: production-resource-service
+    SALES_HOST: sales-service
+    FINANCE_HOST: finance-service
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./devops/docker/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    ports:
+      - "5433:5432"   # 5433 so it does not clash with a Postgres installed on the host
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  service-registry:
+    build: {context: ./backend, args: {SERVICE: service-registry}}
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+
+  auth-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: auth-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
+    ports:
+      - "8087:8087"
+
+  inventory-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: inventory-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventory_db
+    ports:
+      - "8081:8081"
+
+  qa-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: qa-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/qa_db
+    ports:
+      - "8082:8082"
+
+  notification-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: notification-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notification_db
+    ports:
+      - "8083:8083"
+
+  order-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: order-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/workorder_db
+    ports:
+      - "8084:8084"
+
+  production-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: production-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/production_db
+    ports:
+      - "8085:8085"
+
+  procurement-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: procurement-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/procurement_db
+    ports:
+      - "8086:8086"
+
+  reporting-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: reporting-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reporting_db
+    ports:
+      - "8088:8088"
+
+  production-resource-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: production-resource-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/production_resource_db
+    ports:
+      - "8090:8090"
+
+  sales-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: sales-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sales_db
+    ports:
+      - "8091:8091"
+
+  finance-service:
+    <<: *service
+    build: {context: ./backend, args: {SERVICE: finance-service}}
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/finance_db
+    ports:
+      - "8092:8092"
+
+  api-gateway:
+    build: {context: ./backend, args: {SERVICE: api-gateway}}
+    restart: unless-stopped
+    depends_on:
+      - service-registry
+    environment:
+      <<: *service-env
+    ports:
+      - "8089:8089"
+
+  frontend:
+    build: ./frontend/web-app
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+
+volumes:
+  pgdata:

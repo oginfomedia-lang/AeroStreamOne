@@ -1,0 +1,134 @@
+# Aerospace ERP
+
+Spring Boot microservices (13 services) + React frontend, running on Docker.
+
+## Quick start (Docker)
+
+Only Docker Desktop is needed (about 8 GB RAM free). No Java, Maven, Node or Postgres install required.
+
+```powershell
+git clone <repo-url>
+cd Aerospace-ERP
+
+# 1. Create .env and fill in the values (see "Environment variables" below)
+Copy-Item .env.example .env        # Linux/Mac: cp .env.example .env
+
+# 2. Build and start everything
+docker compose up --build -d
+```
+
+The first build takes 10-20 minutes. After that, startup takes 3-5 minutes.
+Open http://localhost:3000
+
+### Login
+
+| Field    | Value                                              |
+|----------|----------------------------------------------------|
+| Username | `admin`                                            |
+| Password | the value of `ADMIN_BOOTSTRAP_PASSWORD` in `.env`  |
+
+The admin user is created on first start only if `ADMIN_BOOTSTRAP_PASSWORD` is set.
+Change the password after your first login.
+
+## Daily commands
+
+```powershell
+docker compose up -d                  # start (Docker Desktop must be running)
+docker compose down                   # stop (data is kept)
+docker compose ps                     # list containers and their status
+docker compose logs -f auth-service   # follow one service's logs
+docker compose restart auth-service   # restart one service
+docker compose up -d --build          # rebuild and restart after code changes
+docker compose up -d --build finance-service   # rebuild a single service
+docker compose down -v                # stop AND delete all database data (careful)
+```
+
+## Environment variables (.env)
+
+| Variable                   | Purpose                                                           |
+|----------------------------|-------------------------------------------------------------------|
+| `JWT_SECRET`               | Signs login tokens. Same value for every service (set once here). |
+| `DB_PASSWORD`              | Postgres password. Docker uses it to create the database.         |
+| `ADMIN_BOOTSTRAP_PASSWORD` | Password for the first `admin` user.                              |
+| `MAIL_USERNAME`            | Gmail address used to send notification emails (optional).        |
+| `MAIL_PASSWORD`            | Gmail App Password, not the normal login password (optional).     |
+
+Generate a JWT secret:
+```powershell
+-join ((1..64) | ForEach-Object { "{0:x}" -f (Get-Random -Maximum 16) })   # PowerShell
+openssl rand -hex 32                                                       # Linux/Mac
+```
+`.env` is gitignored. Never commit it. Copy it manually to each new machine.
+
+## URLs and ports
+
+| What                      | URL / port                                  |
+|---------------------------|---------------------------------------------|
+| Frontend                  | http://localhost:3000                       |
+| API gateway               | http://localhost:8089                       |
+| Eureka (service registry) | http://localhost:8761                       |
+| Postgres (from the host)  | localhost:5433, user `postgres`             |
+
+| Service                     | Port | Database                |
+|-----------------------------|------|-------------------------|
+| auth-service                | 8087 | `auth_db`               |
+| inventory-service           | 8081 | `inventory_db`          |
+| qa-service                  | 8082 | `qa_db`                 |
+| notification-service        | 8083 | `notification_db`       |
+| order-service               | 8084 | `workorder_db`          |
+| production-service          | 8085 | `production_db`         |
+| procurement-service         | 8086 | `procurement_db`        |
+| reporting-service           | 8088 | `reporting_db`          |
+| production-resource-service | 8090 | `production_resource_db`|
+| sales-service               | 8091 | `sales_db`              |
+| finance-service             | 8092 | `finance_db`            | 
+
+The frontend calls each service's port directly from the browser, so this setup works
+when the browser and Docker run on the same machine.
+
+## Troubleshooting
+
+```powershell
+docker compose ps                          # a service that keeps restarting has a problem
+docker compose logs --tail 100 <service>   # read its error
+```
+
+- **Login returns 500 or "connection refused" right after start:** services are still
+  booting. Wait 3-5 minutes and check http://localhost:8761 until all services show UP.
+- **Port already in use:** stop anything else using 3000, 8081-8092 or 8761, for example
+  an old `start-all.ps1` run or `npm start`.
+- **No admin user:** set `ADMIN_BOOTSTRAP_PASSWORD` in `.env`, then run
+  `docker compose up -d auth-service`.
+- **Start clean:** `docker compose down -v` then `docker compose up --build -d`.
+
+## Running without Docker (development)
+
+Needs Java 17, Maven, Node.js, PostgreSQL (port 5432) and Docker (for Kafka only).
+
+```powershell
+# 1. Create the 11 databases in your local Postgres (names are in the table above)
+# 2. Start Kafka + Zookeeper
+docker compose -f devops/docker/docker-compose.yml up -d
+
+# 3. Start all 13 backend services (opens one window per service)
+.\start-all.ps1
+.\start-all.ps1 -Stop          # stop all Java processes
+
+# 4. Start the frontend
+cd frontend\web-app
+npm install
+npm start                      # http://localhost:3000
+```
+
+Do not run this and the Docker setup at the same time. The ports clash.
+
+## Project layout
+
+```
+backend/           13 Spring Boot services + common-lib + Dockerfile
+frontend/web-app/  React app + Dockerfile + nginx.conf
+devops/docker/     init-databases.sh, Kafka-only compose for local dev
+devops/vps/        production VPS scripts (systemd + nginx)
+docker-compose.yml full stack for Docker
+start-all.ps1      starts the backend without Docker
+```

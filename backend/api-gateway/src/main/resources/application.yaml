@@ -46,7 +46,7 @@ spring:
       routes:
         # Auth Service Routes (public - no authentication)
         - id: auth-service
-          uri: http://localhost:8087
+          uri: http://${AUTH_HOST:localhost}:8087
           predicates:
             - Path=/api/auth/**
           filters:
@@ -60,7 +60,7 @@ spring:
 
         # Inventory Service Routes (requires authentication)
         - id: inventory-service
-          uri: http://localhost:8081
+          uri: http://${INVENTORY_HOST:localhost}:8081
           predicates:
             - Path=/api/v1/inventory/**, /api/v1/dashboard/**
           filters:
@@ -73,7 +73,7 @@ spring:
 
         # QA Service Routes (requires authentication)
         - id: qa-service
-          uri: http://localhost:8082
+          uri: http://${QA_HOST:localhost}:8082
           predicates:
             - Path=/api/v1/qa/**
           filters:
@@ -86,7 +86,7 @@ spring:
 
         # Notification Service Routes (requires authentication)
         - id: notification-service
-          uri: http://localhost:8083
+          uri: http://${NOTIFICATION_HOST:localhost}:8083
           predicates:
             - Path=/api/v1/notifications/**
           filters:
@@ -99,7 +99,7 @@ spring:
 
         # Work Order Service Routes (requires authentication)
         - id: work-order-service
-          uri: http://localhost:8084
+          uri: http://${ORDER_HOST:localhost}:8084
           predicates:
             - Path=/api/v1/work-orders/**
           filters:
@@ -112,7 +112,7 @@ spring:
 
         # Production Service Routes (requires authentication)
         - id: production-service
-          uri: http://localhost:8085
+          uri: http://${PRODUCTION_HOST:localhost}:8085
           predicates:
             - Path=/api/v1/production/**
           filters:
@@ -125,7 +125,7 @@ spring:
 
         # Procurement Service Routes (requires authentication)
         - id: procurement-service
-          uri: http://localhost:8086
+          uri: http://${PROCUREMENT_HOST:localhost}:8086
           predicates:
             - Path=/api/purchase-orders/**, /api/suppliers/**
           filters:
@@ -138,7 +138,7 @@ spring:
 
         # Reporting Service Routes (requires authentication)
         - id: reporting-service
-          uri: http://localhost:8088
+          uri: http://${REPORTING_HOST:localhost}:8088
           predicates:
             - Path=/api/reports/**
           filters:
@@ -151,7 +151,7 @@ spring:
 
         # WebSocket routes for notification-service (requires special handling)
         - id: notification-websocket
-          uri: ws://localhost:8083
+          uri: ws://${NOTIFICATION_HOST:localhost}:8083
           predicates:
             - Path=/ws/**
           filters:
@@ -160,17 +160,17 @@ spring:
                 name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
 
         - id: production-resource-service
-          uri: http://localhost:8090
+          uri: http://${PRODUCTION_RESOURCE_HOST:localhost}:8090
           predicates: 
             - Path=/api/v1/resources/**
 
         - id: sales-service
-          uri: http://localhost:8091
+          uri: http://${SALES_HOST:localhost}:8091
           predicates:
             - Path=/api/v1/sales/**
 
         - id: finance-service
-          uri: http://localhost:8092
+          uri: http://${FINANCE_HOST:localhost}:8092
           predicates:
             - Path=/api/v1/finance/**
 

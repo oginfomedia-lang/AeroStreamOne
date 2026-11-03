@@ -65,7 +65,7 @@ app.frontend.base-url: http://localhost:3000
 # with procurement-service before inviting them to the Supplier Portal.
 services:
   procurement:
-    base-url: http://localhost:8086/api
+    base-url: http://${PROCUREMENT_HOST:localhost}:8086/api
 
 # Retry + circuit breaker around ProcurementServiceClient.getSupplier — a GET, safe
 # to retry. See the @Retry/@CircuitBreaker annotations there.

@@ -76,7 +76,7 @@ eureka:
 
 services:
   sales:
-    base-url: http://localhost:8091/api/v1
+    base-url: http://${SALES_HOST:localhost}:8091/api/v1
 
 # Retry + circuit breaker around SalesResourceClient.getSummary — a GET, safe to
 # retry. See the @Retry/@CircuitBreaker annotations there.
